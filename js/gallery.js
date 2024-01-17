@@ -66,58 +66,56 @@ const images = [
 
 const gallery = document.querySelector('.gallery');
 
-function listTemplate(img) {
-    return `<li class="gallery-item">
-    <a class="gallery-link" href="${img.original}">
-    <img
+const markup = images.map(({ preview, original, description }) => `
+  <li class="gallery-item">
+    <a class="gallery-link" href="${original}">
+      <img
         class="gallery-image"
-        src="${img.preview}"
-        data-source="${img.original}"
-        alt="${img.description}"
-    />
+        src="${preview}"
+        data-source="${original}"
+        alt="${description}"
+      />
     </a>
-    </li>`;
-}
+  </li>
+`).join('');
 
-function addListTemplate(images) {
-    return images.map(listTemplate).join('');
-}
+gallery.innerHTML = markup;
 
-function render() {
-    const markup = addListTemplate(images);
-    gallery.innerHTML = markup; 
-    const galleryLinks = document.querySelectorAll('.gallery-link');
-    galleryLinks.forEach(link => {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
-        });
+gallery.addEventListener('click', galleryClick);
+
+let lightboxInstance = null;
+
+function galleryClick(event) {
+  event.preventDefault();
+
+  if (event.target.nodeName !== 'IMG') {
+    return;
+  }
+
+  const imageSrc = event.target.dataset.source;
+
+  if (!lightboxInstance) {
+    lightboxInstance = basicLightbox.create(`
+          <img src="${imageSrc}" width="800" height="600">
+        `, {
+      
+      onShow: (instance) => {
+        document.addEventListener('keydown', keyDown);
+      },
+      
+      onClose: (instance) => {
+        document.removeEventListener('keydown', keyDown);
+      }
     });
+  } else {
+    lightboxInstance.element().querySelector('img').src = imageSrc;
+  }
+
+  lightboxInstance.show();
 }
 
-render();
-
-let modalOpen = false;
-
-gallery.addEventListener('click', e => {
-    if (e.target === e.currentTarget) return;
-    const previewLink = e.target.getAttribute('data-source');
-    const instance = basicLightbox.create(`
-    <img src="${previewLink}" width="1112" height="640">
-`,
-{
-    onShow: instance => {
-        modalOpen = true;
-        document.addEventListener('keydown', closeModal);
-    },
-    onClose: instance => {
-        modalOpen = false;
-        document.removeEventListener('keydown', closeModal);
-    },
-})
-    function closeModal(e) {
-        if(modalOpen && e.code === 'Escape')
-        instance.close()
-    }
-
-instance.show()
-})
+function keyDown(event) {
+  if (event.key === 'Escape' && lightboxInstance) {
+  lightboxInstance.close();
+  }
+}
